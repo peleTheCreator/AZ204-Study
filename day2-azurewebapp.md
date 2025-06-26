@@ -8,6 +8,8 @@
   - Devops Integration
   - Global Scale
 
+---
+
 ## Azure App Service Plans
 * defines the computer resources and the pricing category
 * components :
@@ -24,6 +26,7 @@
 * premium(p1v1- 3v3): 250gb, Fater CPU, custom domain, manual scaling , ssl, auto scale(30), deployment slots(20), VNET, high perf app
 * isolated : ITB, dedicated env, All premium features, mission critical apps
 
+
 ### Chosing the right tier 
 consider these factors
 1. traffic volume
@@ -33,6 +36,7 @@ consider these factors
 5. budget
 6. scaling
 
+---
 
 ## Application setting vs Connection Strings
 * App settings: stores app configuration value ; e.g api keys, feature flags etc ; can be marked as slot settings
@@ -46,13 +50,28 @@ User secrets (development only)
 appsettings.{Environment}.json
 appsettings.json (lowest priority)
 
+---
+
 ## Scaling strategies
 * vertical scaling : scale up/down
 * horizontal scaling : scale in / out;  manual scaling; auto scaling
   - auto scaling : rule based -- triggers(CPU %, memory %, request count, queue length, custom metrics)
 
 
+---
 
 ## Hands on Labs
-1. deployment 
+### Lab1:deployment methods and strategies
+* local git deployment : basic auth
+* github/azure devops : ci/cd; oauth
+* zip deploy 
+* ftp/ftps
+* arm templates
+* container deployment
+
+
+#### Lab1a deploy via local git
+
+```bash
+
 
