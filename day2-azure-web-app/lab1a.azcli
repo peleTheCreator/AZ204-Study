@@ -1,0 +1,34 @@
+$resource_group = "az204-day2-rg"
+$plan = "az204-day2-plan"
+
+# Create a resource group
+az group create --name $resource_group --location eastus
+
+# Create an App Service plan    
+az appservice plan create --name $plan --resource-group $resource_group --location westus --sku B1 --is-linux
+
+# Create a web app with local Git deployment
+# Note: Ensure you have the Azure CLI installed and configured with your account
+az webapp create --name az204-day2-webapp --resource-group $resource_group --plan $plan --runtime "DOTNETCORE:8.0" --deployment-local-git
+
+# SET   deployment credentials
+$username = "azureuser10"
+$password = "DGHSVJ87836GGY455IaaGIUS67^"
+az webapp deployment user set --user-name $username  --password $password 
+
+# Get the Git URL for deployment
+ az webapp deployment source show --resource-group $resource_group --name az204-day2-webapp --query repoUrl --output tsv
+
+# create a smaple application
+mkdir sample-app
+cd sample-app
+dotnet new webapp -n SampleApp 
+
+#deploy via Git
+git init
+git add .   
+git commit -m "Initial commit"
+git remote add azure https://$username@az204-day2-webapp.scm.azurewebsites.net/az204-day2-webapp.git
+git remote -v
+# Push the code to Azure
+git push azure master

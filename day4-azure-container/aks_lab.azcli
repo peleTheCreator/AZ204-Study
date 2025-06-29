@@ -1,0 +1,182 @@
+# Lab 4: Deploying and Managing Applications with AKS (30 minutes)
+# Step 1: Create AKS Cluster
+# Create AKS cluster
+az aks create \
+  --resource-group az204-day4-rg \
+  --name az204-day4-aks \
+  --node-count 2 \
+  --node-vm-size Standard_B2s \
+  --generate-ssh-keys \
+  --attach-acr az204day4acr[yourname] \
+  --enable-addons monitoring
+
+# Get cluster credentials
+az aks get-credentials \
+  --resource-group az204-day4-rg \
+  --name az204-day4-aks
+
+# Verify cluster connection
+kubectl get nodes
+kubectl cluster-info
+
+#Step 2: Deploy Application to AKS
+# Create deployment manifest
+cat > app-deployment.yaml << 'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mywebapi-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mywebapi
+  template:
+    metadata:
+      labels:
+        app: mywebapi
+    spec:
+      containers:
+      - name: mywebapi
+        image: az204day4acr[yourname].azurecr.io/mywebapi:v1
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mywebapi-service
+spec:
+  selector:
+    app: mywebapi
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+EOF
+
+# Deploy application
+kubectl apply -f app-deployment.yaml
+
+# Check deployment status
+kubectl get deployments
+kubectl get pods
+kubectl get services
+
+# Get external IP (may take a few minutes)
+kubectl get service mywebapi-service --watch
+
+
+#Step 3: Scale Application
+# Scale deployment
+kubectl scale deployment mywebapi-deployment --replicas=5
+
+# Check scaling
+kubectl get pods
+
+# Auto-scale based on CPU
+kubectl autoscale deployment mywebapi-deployment --cpu-percent=50 --min=1 --max=10
+
+# Check auto-scaler
+kubectl get hpa
+
+#-----
+
+
+# Lab 5: Advanced AKS Features 
+# Step 1: Create Multiple Node Pools
+
+# Add new node pool for different workloads
+az aks nodepool add \
+  --resource-group az204-day4-rg \
+  --cluster-name az204-day4-aks \
+  --name gpu-pool \
+  --node-count 1 \
+  --node-vm-size Standard_NC6s_v3 \
+  --node-taints sku=gpu:NoSchedule
+
+# List node pools
+az aks nodepool list \
+  --resource-group az204-day4-rg \
+  --cluster-name az204-day4-aks \
+  --output table
+
+# Step 2: Configure Namespaces and RBAC
+# Create namespace
+kubectl create namespace production
+kubectl create namespace staging
+
+# Create service account
+kubectl create serviceaccount myapp-sa --namespace=production
+
+# Apply deployment to specific namespace
+kubectl apply -f app-deployment.yaml --namespace=production
+
+# List resources by namespace
+kubectl get all --namespace=production
+Step 3: Configure ConfigMaps and Secrets
+
+
+# Create ConfigMap
+kubectl create configmap myapp-config \
+  --from-literal=api-url=https://api.example.com \
+  --from-literal=environment=production
+
+# Create Secret
+kubectl create secret generic myapp-secrets \
+  --from-literal=api-key=super-secret-key \
+  --from-literal=db-password=my-db-password
+
+# Use ConfigMap and Secret in deployment
+cat > app-with-config.yaml << 'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mywebapi-with-config
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mywebapi-config
+  template:
+    metadata:
+      labels:
+        app: mywebapi-config
+    spec:
+      containers:
+      - name: mywebapi
+        image: az204day4acr[yourname].azurecr.io/mywebapi:v1
+        ports:
+        - containerPort: 80
+        env:
+        - name: API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: myapp-config
+              key: api-url
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: myapp-config
+              key: environment
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: myapp-secrets
+              key: api-key
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: myapp-secrets
+              key: db-password
+EOF
+
+kubectl apply -f app-with-config.yaml

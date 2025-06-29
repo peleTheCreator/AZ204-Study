@@ -9,7 +9,6 @@
   - Global Scale
 
 ---
-
 ## Azure App Service Plans
 * defines the computer resources and the pricing category
 * components :
@@ -51,14 +50,36 @@ appsettings.{Environment}.json
 appsettings.json (lowest priority)
 
 ---
-
 ## Scaling strategies
 * vertical scaling : scale up/down
 * horizontal scaling : scale in / out;  manual scaling; auto scaling
   - auto scaling : rule based -- triggers(CPU %, memory %, request count, queue length, custom metrics)
 
+--- 
+
+## Deployment Slots and Blue-Green Deployment 
+* Deployment slots are live apps with their own host names, running different versions of your application.
+
+* Key Benefits:
+ - Zero-downtime deployments: Swap slots instantly
+ - Easy rollback: Swap back if issues occur
+ - Testing in production: Test with production data
+ - Gradual rollout: Route percentage of traffic to new version
+
+* Slot Types:
+ - Production Slot: The live application (always exists)
+ - Non-production Slots: Staging, testing, development environments
+
+* Slot Settings
+Settings can be "sticky" to a slot or "swappable":
+
+* Advanced Slot Features
+ - Traffic Routing : Route percentage of traffic to different slots:
+ - Slot Swap with Preview
 
 ---
+
+## Custom domain
 
 ## Hands on Labs
 ### Lab1:deployment methods and strategies
@@ -68,10 +89,4 @@ appsettings.json (lowest priority)
 * ftp/ftps
 * arm templates
 * container deployment
-
-
-#### Lab1a deploy via local git
-
-```bash
-
 

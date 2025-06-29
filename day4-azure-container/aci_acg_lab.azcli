@@ -1,0 +1,112 @@
+az provider register --namespace Microsoft.ContainerInstance
+
+# Deploy public image
+az container create  --resource-group az204-day4-rg --name mycontainer --image mcr.microsoft.com/azuredocs/aci-helloworld --dns-name-label aci-demo-pele  --ports 80 --os-type Linux --cpu 1 --memory 1.5
+
+
+# Check deployment status
+az container show  --resource-group az204-day4-rg  --name mycontainer  --query "{FQDN:ipAddress.fqdn,ProvisioningState:provisioningState}"   --output table
+
+
+# Deploy from ACR
+## Get ACR credentials
+ACR_LOGIN_SERVER=$(az acr show --name az204acr001 --query loginServer --output tsv)
+ACR_USERNAME=$(az acr credential show --name az204acr001 --query username --output tsv)
+ACR_PASSWORD=$(az acr credential show --name az204acr001 --query passwords[0].value --output tsv)
+
+## Deploy container from ACR
+az container create --resource-group az204-day4-rg --name mywebapi --image $ACR_LOGIN_SERVER/mywebapi:v1 
+--cpu 1 \
+  --memory 1 \
+  --registry-login-server $ACR_LOGIN_SERVER \
+  --registry-username $ACR_USERNAME \
+  --registry-password $ACR_PASSWORD \
+  --dns-name-label mywebapi-[yourname] \
+  --ports 80
+
+# Test the API
+curl http://mywebapi.eastus.azurecontainer.io/weatherforecas
+
+#----------------------------------------------------------------------------
+
+# Multi-Container Group (20 minutes)
+Step 1: Create Container Group with Sidecar
+bash
+
+## Create container group with main app and sidecar
+cat > container-group.yaml << 'EOF'
+apiVersion: 2019-12-01
+location: eastus
+name: mycontainergroup
+properties:
+  containers:
+  - name: myapp
+    properties:
+      image: mcr.microsoft.com/azuredocs/aci-helloworld
+      ports:
+      - port: 80
+        protocol: TCP
+      resources:
+        requests:
+          cpu: 1.0
+          memoryInGB: 1.0
+  - name: mysidecar
+    properties:
+      image: mcr.microsoft.com/azuredocs/aci-tutorial-sidecar
+      resources:
+        requests:
+          cpu: 0.5
+          memoryInGB: 0.5
+  osType: Linux
+  ipAddress:
+    type: Public
+    dnsNameLabel: mycontainergroup-[yourname]
+    ports:
+    - protocol: TCP
+      port: 80
+  restartPolicy: Always
+tags: {}
+type: Microsoft.ContainerInstance/containerGroups
+EOF
+
+## Deploy container group
+az container create \
+  --resource-group az204-day4-rg \
+  --file container-group.yaml
+
+#---------------------------------------------------------------------------------
+
+# Container Group with Persistent Storage
+
+## Create storage account for persistent storage
+az storage account create \
+  --resource-group az204-day4-rg \
+  --name az204day4storage[yourname] \
+  --location eastus \
+  --sku Standard_LRS
+
+## Create file share
+STORAGE_KEY=$(az storage account keys list \
+  --resource-group az204-day4-rg \
+  --account-name az204day4storage[yourname] \
+  --query "[0].value" \
+  --output tsv)
+
+az storage share create \
+  --name myfileshare \
+  --account-name az204day4storage[yourname] \
+  --account-key $STORAGE_KEY
+
+## Deploy container with persistent storage
+az container create \
+  --resource-group az204-day4-rg \
+  --name mycontainer-storage \
+  --image mcr.microsoft.com/azuredocs/aci-hellofiles \
+  --dns-name-label aci-storage-[yourname] \
+  --ports 80 \
+  --azure-file-volume-account-name az204day4storage[yourname] \
+  --azure-file-volume-account-key $STORAGE_KEY \
+  --azure-file-volume-share-name myfileshare \
+  --azure-file-volume-mount-path /aci/logs/
+
+

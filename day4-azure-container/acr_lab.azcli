@@ -1,0 +1,22 @@
+# Create resource group
+az group create --name az204-day4-rg --location westus
+
+# Create ACR (name must be globally unique)
+
+az acr create --resource-group az204-day4-rg --name az204acr001 --sku Basic 
+
+# Enable admin access (for simplicity - use managed identity in production)
+az acr update   --name az204acr001  --admin-enabled true
+
+# Get ACR login server
+az acr show  --name az204acr001 --query loginServer  --output tsv
+
+
+
+# Build and push using ACR Tasks (recommended)
+az acr build --registry az204acr001   --image mywebapi:v1  .
+
+# Alternative: Build locally and push
+# docker build -t az204day4acr[yourname].azurecr.io/mywebapi:v1 .
+# az acr login --name az204day4acr[yourname]
+# docker push az204day4acr[yourname].azurecr.io/mywebapi:v1
